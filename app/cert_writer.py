@@ -1,9 +1,8 @@
-import docx
 import csv
+import subprocess
 import time
 import zipfile
-from docx2pdf import convert
-
+import platform
 
 # Cert writer
 def create_certificate(attendee_name: str, training_date: str):
@@ -43,12 +42,33 @@ def docx_to_pdf(path_to_convert: str, pdf_output_dir: str = "./pdf_certs",
     :param path_to_convert: str | name of the local docx file OR directory with files to be converted
     :return:
     """
+    from docx2pdf import convert
     # convert the certs_docx directory
     print(f"trying to convert {path_to_convert} to pdf")
     convert(path_to_convert, output_path=pdf_output_dir)
     new_pdf_path = f"{pdf_output_dir}/{path_to_convert.split('/')[-1].replace('.docx', '.pdf')}"  # need to remove the original dir
     print(f"wrote to: ", new_pdf_path)
+    # TODO: Implement removing docx docs if del_docx_after is True
     return new_pdf_path
+
+
+def doc2pdf_linux(path_to_convert: str):
+    """
+    convert a doc/docx document to pdf format (linux only, requires libreoffice)
+    :param pdf_output_dir: 
+    :param path_to_convert: path to document
+    """
+    print(f"calling libreoffice --convert-to pdf")
+    cmd = 'libreoffice --convert-to pdf'.split() + [path_to_convert]
+    p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    p.wait(timeout=10)
+    stdout, stderr = p.communicate()
+    if stderr:
+        raise subprocess.SubprocessError(stderr)
+    new_file_name = path_to_convert.replace('.docx', '.pdf')
+    print(f"COMPLETE! created file: {new_file_name}")
+    return new_file_name
+
 
 
 class AttendeeTracker:
@@ -68,15 +88,19 @@ class AttendeeTracker:
                     try:
                         attendee_name = row[0]
                         attendee_email = row[1]
-                        if attendee_email in self.emails:  # Do not allow duplicate email addresses, each attendee should have a unique email
-                            raise ValueError(f"{attendee_email} is being added for {attendee_name} but it is ALREADY in the list -- THIS IS A DUPLICATE -- check the data")
+                        if attendee_email in self.emails or attendee_email in new_emails:  # Do not allow duplicate email addresses, each attendee should have a unique email
+                            raise ValueError(f"\n\n\n{attendee_email} is being added for {attendee_name} but it is ALREADY in the list -- THIS IS A DUPLICATE -- check the data")
                         new_emails.add(attendee_email)
                         new_list.append(row)
+                    except ValueError as e:
+                        print(f"ISSUE WITH THE NAME!", row, e)
+                        print("\n\n\n")
+                        break
                     except Exception as e:
                         print(f"Exception encountered when trying to process row: ", row, e)
                         if "y" not in input("Continue? (type Y or YES to continue, anything else to abort)").lower():
                             print(f"... Aborting loading")
-                            return None
+                            return []
 
         self.emails = new_emails  # TODO: implement local storage of issued / sent certificates
         self._attendee_list = new_list
@@ -104,7 +128,10 @@ class AttendeeTracker:
             docx_file = create_certificate(attendee_name, self.training_date)
             print(f"{attendee} | created file {docx_file} --> NOW CONVERTING TO PDF")
             try:
-                new_pdf_path = docx_to_pdf(docx_file)
+                if platform.system() == "Linux":  # if on linux, use libreoffice
+                    new_pdf_path = doc2pdf_linux(docx_file)
+                else:
+                    new_pdf_path = docx_to_pdf(docx_file)
                 # new_entry = [attendee, f'./pdf_certs/HaRT3s_harm_reduction_certificate_{attendee}.pdf']
                 new_entry = {'email': attendee_email,
                              'name': attendee_name,
@@ -127,7 +154,6 @@ class AttendeeTracker:
 
     def __repr__(self):
         return f"AttendeeTracker({self.training_date})"
-
 
 # training_date = time.strftime("%m/%d/%y", time.localtime(time.time()))
 # event_date = "APRIL 2021"

@@ -1,7 +1,8 @@
-from copy import copy, deepcopy
+import json
+from copy import deepcopy
 
-from app.cert_writer import AttendeeTracker
-from app.mailer import Mailer
+from cert_writer import AttendeeTracker
+from mailer import Mailer
 import os
 
 print(f"WORKING DIR: ", os.getcwd())
@@ -37,7 +38,7 @@ def replace_namestring(msg_text, replace_str, replace_with):
 
 if __name__ == '__main__':
     # Create and send the certificates
-    limit_to = 1
+    limit_to = 3
     tracker = AttendeeTracker('APRIL 2021')
     tracker.load_attendees()
     attendee_cert_files = tracker.make_certs(limit_to)
@@ -61,23 +62,30 @@ if __name__ == '__main__':
                     "Attached to this email is a certificate of completion."
 
     mailer = Mailer()
-
+    sent_certs = set()
+    failed_list = list()
     try:
         mailer.start_server()
         email_subject = "HaRT3S - Harm-Reduction Training Certificate"
         for cert_entry in attendee_cert_files:
-            first_name = cert_entry['name'].split(' ')[0]
-            personalized_mail_body = replace_namestring(deepcopy(mail_body), NAME_SEARCH_STRING, first_name)
-            print(f"MAIL WILL BE SENT WITH :\n",personalized_mail_body)
-            if "y" in input("\n\nREADY TO SEND NEXT EMAIL? ---> (type Y or YES to continue, anything else to abort)").lower():
-                email_recipient = cert_entry['email']
-                pdf_attachment = cert_entry['cert_file']
-                # email_recipient = cert_entry[0]
-                # pdf_attachment = cert_entry[1]
-                print(f"trying to create new message for {email_recipient}")
-                mailer.send_mail(mail_body, email_subject, email_recipient, pdf_attachment)
+            try:
+                first_name = cert_entry['name'].split(' ')[0]
+                personalized_mail_body = replace_namestring(deepcopy(mail_body), NAME_SEARCH_STRING, first_name)
+                print(f"MAIL WILL BE SENT WITH :\n", personalized_mail_body)
+                if "y" in input("\n\nREADY TO SEND NEXT EMAIL? ---> (type Y or YES to continue, anything else to abort)").lower():
+                    email_recipient = cert_entry['email']
+                    pdf_attachment = cert_entry['cert_file']
+                    # email_recipient = cert_entry[0]
+                    # pdf_attachment = cert_entry[1]
+                    print(f"trying to create new message for {email_recipient}")
+                    mailer.send_mail(mail_body, email_subject, email_recipient, pdf_attachment)
+                    sent_certs.add(email_recipient)
+            except Exception as e:
+                print(f"Exception encountered when trying to process cert entry: {cert_entry}: ", e)
+                failed_list.append(cert_entry)
     except Exception as e:
         print(f"Exception encountered when trying to send stuff: ", e)
     finally:
         print(f"closing connection")
         mailer.server.quit()
+        print("SENT CERTS TO: ", json.dumps(list(sent_certs), indent=4, sort_keys=True))
