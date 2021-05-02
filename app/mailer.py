@@ -106,19 +106,3 @@ class Mailer:
         return f"Mailer({self.login_user})"
 
 
-if __name__ == '__main__':
-    print(f"mailer = Mailer()")
-    mailer = Mailer()
-    try:
-        mailer.start_server()
-        sample_attachment = "./pdf_certs/hart3s_harm_reduction_certificate_Allison_Edwards.pdf"
-        mail_body = "Attached you will find a certificate of completion for the HaRT3S training"
-        email_subject = "Testing sending out certificates"
-        recipient = "phil.spelman@gmail.com"
-        if "y" in input("Continue? (type Y or YES to continue, anything else to abort)").lower():
-            mailer.send_mail(mail_body, email_subject, recipient, sample_attachment)
-    except Exception as e:
-        print(f"Exception encountered when trying to send stuff: ", e)
-    finally:
-        print(f"closing connection")
-        mailer.server.quit()

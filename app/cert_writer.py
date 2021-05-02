@@ -12,7 +12,7 @@ def create_certificate(attendee_name: str, training_date: str):
                            "XXXMEETDATEXXX": training_date}
     base_docx_file = "../private/certificate_of_completion_template.docx"
     docx_output_dir = "./docx_temp"
-    new_docx_file = f"{docx_output_dir}/hart3s_harm_reduction_certificate_{attendee_name.replace(' ', '_')}.docx"
+    new_docx_file = f"{docx_output_dir}/HaRT3S-harm-reduction-certificate-{attendee_name.replace(' ', '-')}.docx"
     docx_template = zipfile.ZipFile(base_docx_file)
 
     new_docx = zipfile.ZipFile(new_docx_file, "w")  # X for exclusive create mode | a for append | w for write
@@ -32,18 +32,23 @@ def create_certificate(attendee_name: str, training_date: str):
 
     docx_template.close()
     new_docx.close()
+    return new_docx_file
 
 
-def convert_to_pdf(path_to_convert: str, del_docx_after: bool = False):
+def docx_to_pdf(path_to_convert: str, pdf_output_dir: str = "./pdf_certs",
+                del_docx_after: bool = False):
     """ specify a local docx file to convert to PDF
+    :param pdf_output_dir:
     :param del_docx_after: boolean | delete the original docx file after conversion
     :param path_to_convert: str | name of the local docx file OR directory with files to be converted
     :return:
     """
-    pdf_output_dir = "./pdf_certs/"
     # convert the certs_docx directory
     print(f"trying to convert {path_to_convert} to pdf")
     convert(path_to_convert, output_path=pdf_output_dir)
+    new_pdf_path = f"{pdf_output_dir}/{path_to_convert.split('/')[-1].replace('.docx', '.pdf')}"  # need to remove the original dir
+    print(f"wrote to: ", new_pdf_path)
+    return new_pdf_path
 
 
 class AttendeeTracker:
@@ -52,7 +57,7 @@ class AttendeeTracker:
         self._attendee_list = list()
         self.emails = set()
 
-    def load_attendees(self):
+    def load_attendees(self) -> list:
         certs_to_send_file = "../private/attendees_certs_todo.csv"  # attendees file each line after line 0 should be [NAME, EMAIL]
         new_emails = set()
         new_list = list()
@@ -79,15 +84,39 @@ class AttendeeTracker:
         return self._attendee_list
 
     def make_certs(self, n_attendees=3):
+        """
+        :param n_attendees:
+        :return: returns a list of created cert pdfs by email
+            Ex: [["someone@somewhere.com", "pdf_certs/certificate_for_someone_somehwere.pdf"]]
+        """
         if not n_attendees:
             print(f"making certs for ALL the attendees")
             n_attendees = len(self.attendee_list)
         else:
             print(f"going to make certs for up to {n_attendees} attendees")
 
+        new_files = []
+        example = {'email': 'something@something', 'name': 'Phil Spelman', 'cert_file': './cert_file_path.pdf'}
         for attendee in self.attendee_list[:n_attendees]:
             print(f"making cert for {attendee}")
-            create_certificate(attendee[0], self.training_date)
+            attendee_name = attendee[0]
+            attendee_email = attendee[1]
+            docx_file = create_certificate(attendee_name, self.training_date)
+            print(f"{attendee} | created file {docx_file} --> NOW CONVERTING TO PDF")
+            try:
+                new_pdf_path = docx_to_pdf(docx_file)
+                # new_entry = [attendee, f'./pdf_certs/HaRT3s_harm_reduction_certificate_{attendee}.pdf']
+                new_entry = {'email': attendee_email,
+                             'name': attendee_name,
+                             'cert_file': new_pdf_path}
+                # new_entry = [attendee_email, new_pdf_path]
+                print(f"new entry: ", new_entry)
+                new_files.append(new_entry)
+            except Exception as e:
+                print(f"Exception encountered when converting to PDF! ", e)
+
+        print(f"created {len(new_files)} new files")
+        return new_files
 
     @property
     def attendee_list(self):
@@ -101,10 +130,10 @@ class AttendeeTracker:
 
 
 # training_date = time.strftime("%m/%d/%y", time.localtime(time.time()))
-event_date = "APRIL 2021"
-print(event_date)
-
-tracker = AttendeeTracker(event_date)
-tracker.make_certs()
+# event_date = "APRIL 2021"
+# print(event_date)
+# 
+# tracker = AttendeeTracker(event_date)
+# tracker.make_certs()
 
 # TODO: Convert docx to PDF
