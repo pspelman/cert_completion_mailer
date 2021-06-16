@@ -44,6 +44,8 @@ if __name__ == '__main__':
     # get all the cert files or email one by one
     if "y" in input("Continue? (type Y or YES to continue, anything else to abort)").lower():
         print(f"continuing")
+    else:
+        raise Exception("Operation Aborted by User")
 
     # TODO: Keep track of SENT certs (so we don't re-send)
     # Send the certs and record SENT certs and timestamp
@@ -74,10 +76,12 @@ if __name__ == '__main__':
                 # email_recipient = cert_entry[0]
                 # pdf_attachment = cert_entry[1]
                 print(f"trying to create new message for {email_recipient}")
-                mailer.send_mail(personalized_mail_body, email_subject, email_recipient, pdf_attachment)
-                sent_certs.add(email_recipient)
-                # if "y" in input("\n\nREADY TO SEND NEXT EMAIL? ---> (type Y or YES to continue, anything else to abort)").lower():
-                #     pass
+                # note: EMAIL IS ABOUT TO BE SENT
+                if "y" in input("\n\nREADY TO SEND NEXT EMAIL? ---> (type Y or YES to continue, anything else to abort)").lower():
+                    mailer.send_mail(personalized_mail_body, email_subject, email_recipient, pdf_attachment)
+                    sent_certs.add(email_recipient)
+                else:
+                    raise Exception("Operation Aborted by User")
             except Exception as e:
                 print(f"Exception encountered when trying to process cert entry: {cert_entry}: ", e)
                 failed_list.append(cert_entry)

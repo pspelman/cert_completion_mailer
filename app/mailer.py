@@ -36,10 +36,18 @@ def attach_file(message: EmailMessage, file_path: str):
 
 
 class Mailer:
+
     def __init__(self, **kwargs):
-        self.login_user = config.get('EMAIL_LOGIN', None)
-        self.__smtp_backend = config.get('SMTP_DOMAIN', None)
-        self.__smtp_port = config.get('SMTP_PORT', None)
+        global config
+        if (cfg := kwargs.get('config', False)):
+            config = cfg
+            self.login_user = config.get('EMAIL_LOGIN', None)
+            self.__smtp_backend = config.get('SMTP_DOMAIN', None)
+            self.__smtp_port = config.get('SMTP_PORT', None)
+        else:
+            self.login_user = config.get('EMAIL_LOGIN', None)
+            self.__smtp_backend = config.get('SMTP_DOMAIN', None)
+            self.__smtp_port = config.get('SMTP_PORT', None)
         # self.__smtp_port = config.get('SMTP_TLS_PORT', None)  # sending mail uses 587 for gmail
         self.__server = None
 

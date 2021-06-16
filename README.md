@@ -11,6 +11,19 @@
 ## Dev setup
 - for now you just need python >= 3.8
 
+## Run Locally
+- Open project in VS Code
+- Reopne in dev container
+- run `python main.py`
+- enter "Y" or "YES" at the prompts
+- copy the successfully sent list and send that to whoever is keeping track 
+
+## Issues
+- sometimes there is an error about logging in
+  - Google automatically turns off less secure access if it isn't used after a period of time
+  - Go to [less secure access](https://myaccount.google.com/u/3/lesssecureapps)
+    - update the setting to allow before re-running the tool
+  
 ## How to create a new round of certs
 - CSV file
     - add a csv file with NAME,EMAIL column headers
