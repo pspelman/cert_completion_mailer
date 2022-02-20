@@ -37,12 +37,19 @@ def replace_namestring(msg_text, replace_str, replace_with):
 if __name__ == '__main__':
     # Create and send the certificates
     limit_to = 0
-    tracker = AttendeeTracker('APRIL 2021')
+    day = input("input the DAY of the 'documented on' date (e.g., 17) ").upper()
+    month = input("input the MONTH of the training (e.g., MAY) ").upper()
+    year = input("input the YEAR of the training (e.g., 2021): ").upper()
+    if not "y" in input(f"\n\nProceed with date: \t{month} {year} | documented on {month} {day}, {year} \n\t(Y or YES): ").lower():
+        raise Exception("Operation Aborted by User")
+    print(f"continuing")
+
+    tracker = AttendeeTracker(f'{month} {year}', f'{month} {day}, {year}')
     tracker.load_attendees()
     attendee_cert_files = tracker.make_certs(limit_to)
     print(f"going to send certs to the following attendees: ", attendee_cert_files)
     # get all the cert files or email one by one
-    if "y" in input("Continue? (type Y or YES to continue, anything else to abort)").lower():
+    if "y" in input("Continue? (type Y or YES to continue, anything else to abort): ").lower():
         print(f"continuing")
     else:
         raise Exception("Operation Aborted by User")
@@ -77,11 +84,13 @@ if __name__ == '__main__':
                 # pdf_attachment = cert_entry[1]
                 print(f"trying to create new message for {email_recipient}")
                 # note: EMAIL IS ABOUT TO BE SENT
-                if "y" in input("\n\nREADY TO SEND NEXT EMAIL? ---> (type Y or YES to continue, anything else to abort)").lower():
-                    mailer.send_mail(personalized_mail_body, email_subject, email_recipient, pdf_attachment)
-                    sent_certs.add(email_recipient)
-                else:
-                    raise Exception("Operation Aborted by User")
+                mailer.send_mail(personalized_mail_body, email_subject, email_recipient, pdf_attachment)
+                sent_certs.add(email_recipient)
+                # if "y" in input("\n\nREADY TO SEND NEXT EMAIL? ---> (type Y or YES to continue, anything else to abort)").lower():
+                #     mailer.send_mail(personalized_mail_body, email_subject, email_recipient, pdf_attachment)
+                #     sent_certs.add(email_recipient)
+                # else:
+                #     raise Exception("Operation Aborted by User")
             except Exception as e:
                 print(f"Exception encountered when trying to process cert entry: {cert_entry}: ", e)
                 failed_list.append(cert_entry)

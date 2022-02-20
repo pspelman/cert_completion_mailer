@@ -9,10 +9,12 @@ from global_vars import BASE_DIR
 
 
 # Cert writer
-def create_certificate(attendee_name: str, training_date: str):
+def create_certificate(attendee_name: str, training_month: str, documented_on_date: str):
     print(f"trying to create cert for {attendee_name}")
     replace_text_fields = {"XXXCLIENTNAMEXXX": attendee_name,
-                           "XXXMEETDATEXXX": training_date}
+                           "XXXMEETDATEXXX": training_month,
+                           "XXXDOCUMENTEDDATEXXX": documented_on_date,
+                           }
     base_docx_file = f"{BASE_DIR}/private/certificate_of_completion_template.docx"
     # docx_output_dir = "./docx_temp"
     # docx_output_dir = "./certs_dir"
@@ -25,6 +27,8 @@ def create_certificate(attendee_name: str, training_date: str):
     with open(docx_template.extract("word/document.xml", "./")) as tempXmlFile:
         xml_template_string = tempXmlFile.read()
         for key in replace_text_fields.keys():
+            print(f"replacing {key} with {replace_text_fields.get(key, 'n/a')}")
+            print(f"FINDING in XML_TEMPLATE_STRING: ", xml_template_string.find(str(key)))
             xml_template_string = xml_template_string.replace(str(key), str(replace_text_fields.get(key)))
 
     with open("./temp.xml", "w+") as tempXmlFile:
@@ -91,20 +95,22 @@ def doc2pdf_linux(path_to_convert: str):
     :param pdf_output_dir:
     :param path_to_convert: path to document
     """
-    print(f"calling libreoffice --convert-to pdf")
+    print(f"calling libreoffice --convert-to pdf | path_to_convert: {path_to_convert}")
     cmd = 'libreoffice --convert-to pdf'.split() + [path_to_convert]
     p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     p.wait(timeout=10)
     stdout, stderr = p.communicate()
     if stderr:
         raise subprocess.SubprocessError(stderr)
-    new_file_name = path_to_convert.replace('.docx', '.pdf')
+    new_file_name = path_to_convert.replace('/certs_dir', '').replace('.docx', '.pdf')
+
     print(f"COMPLETE! created file: {new_file_name}")
     return new_file_name
 
 
 class AttendeeTracker:
-    def __init__(self, training_date: str):
+    def __init__(self, training_date: str, documented_on_date: str):
+        self.documented_on_date = documented_on_date
         self.training_date = training_date  # training date will be printed on the certificates (e.g., APRIL 2021)
         self._attendee_list = list()
         self.emails = set()
@@ -157,7 +163,7 @@ class AttendeeTracker:
             print(f"making cert for {attendee}")
             attendee_name = attendee[0]
             attendee_email = attendee[1]
-            docx_file = create_certificate(attendee_name, self.training_date)
+            docx_file = create_certificate(attendee_name, self.training_date, self.documented_on_date)
             print(f"{attendee} | created file {docx_file} --> NOW CONVERTING TO PDF")
             try:
                 if platform.system() == "Linux":  # if on linux, use libreoffice
