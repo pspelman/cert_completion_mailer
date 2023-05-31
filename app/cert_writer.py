@@ -9,13 +9,17 @@ from global_vars import BASE_DIR
 
 
 # Cert writer
-def create_certificate(attendee_name: str, training_month: str, documented_on_date: str):
+def create_certificate(attendee_name: str, training_month: str, documented_on_date: str, certificate_type: str = "completion"):
     print(f"trying to create cert for {attendee_name}")
     replace_text_fields = {"XXXCLIENTNAMEXXX": attendee_name,
                            "XXXMEETDATEXXX": training_month,
                            "XXXDOCUMENTEDDATEXXX": documented_on_date,
                            }
-    base_docx_file = f"{BASE_DIR}/private/certificate_of_completion_template.docx"
+    if certificate_type == "CE".upper():
+        print(f"creating a CE certificate")
+        base_docx_file = f"{BASE_DIR}/private/ce_credit_template.docx"
+    else:
+        base_docx_file = f"{BASE_DIR}/private/certificate_of_completion_template.docx"
     # docx_output_dir = "./docx_temp"
     # docx_output_dir = "./certs_dir"
     docx_output_dir = f"{BASE_DIR}/app/certs_dir"
@@ -109,10 +113,11 @@ def doc2pdf_linux(path_to_convert: str):
 
 
 class AttendeeTracker:
-    def __init__(self, training_date: str, documented_on_date: str):
+    def __init__(self, training_date: str, documented_on_date: str, certificate_type: str = "completion"):
         self.documented_on_date = documented_on_date
         self.training_date = training_date  # training date will be printed on the certificates (e.g., APRIL 2021)
         self._attendee_list = list()
+        self.certificate_type = certificate_type
         self.emails = set()
 
     def load_attendees(self) -> list:
@@ -163,7 +168,7 @@ class AttendeeTracker:
             print(f"making cert for {attendee}")
             attendee_name = attendee[0]
             attendee_email = attendee[1]
-            docx_file = create_certificate(attendee_name, self.training_date, self.documented_on_date)
+            docx_file = create_certificate(attendee_name, self.training_date, self.documented_on_date, self.certificate_type)
             print(f"{attendee} | created file {docx_file} --> NOW CONVERTING TO PDF")
             try:
                 if platform.system() == "Linux":  # if on linux, use libreoffice

@@ -37,6 +37,7 @@ def replace_namestring(msg_text, replace_str, replace_with):
 if __name__ == '__main__':
     # Create and send the certificates
     limit_to = 0
+    certificate_type = input("input type of certificate ('CE' for continuing education) ").upper()
     day = input("input the DAY of the 'documented on' date (e.g., 17) ").upper()
     month = input("input the MONTH of the training (e.g., MAY) ").upper()
     year = input("input the YEAR of the training (e.g., 2021): ").upper()
@@ -44,7 +45,7 @@ if __name__ == '__main__':
         raise Exception("Operation Aborted by User")
     print(f"continuing")
 
-    tracker = AttendeeTracker(f'{month} {year}', f'{month} {day}, {year}')
+    tracker = AttendeeTracker(f'{month} {year}', f'{month} {day}, {year}', certificate_type)
     tracker.load_attendees()
     attendee_cert_files = tracker.make_certs(limit_to)
     print(f"going to send certs to the following attendees: ", attendee_cert_files)
