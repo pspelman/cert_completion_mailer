@@ -28,7 +28,7 @@ def create_certificate(
     if certificate_type == "CE".upper():
         print(f"creating a CE certificate")
         base_docx_file = f"{BASE_DIR}/private/ce_credit_template.docx"
-    if certificate_type == "indigenized_MI".upper():
+    elif certificate_type == "indigenized_MI".upper():
         print(f"creating a certificate of completion for Indigenized MI")
         base_docx_file = f"{BASE_DIR}/private/indigenized_MI_cert_template.docx"
     else:

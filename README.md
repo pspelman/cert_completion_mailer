@@ -35,7 +35,7 @@
     - add a csv file with NAME,EMAIL column headers
     ```csv
     NAME,EMAIL
-    fake name, fake_name@gmail.com
+    fake name,fake_name@gmail.com
   ```
 - At the container base directory navigate to `workspaces/certificate_mailer/app`
   - `python -i main.py`
