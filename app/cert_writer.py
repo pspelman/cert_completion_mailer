@@ -4,6 +4,7 @@ import subprocess
 import time
 import zipfile
 import platform
+from threading import Timer
 
 from global_vars import BASE_DIR
 
@@ -91,33 +92,87 @@ def docx_to_pdf(
     return new_pdf_path
 
 
-def doc2pdf_mac(path_to_convert: str):
+def doc2pdf_mac(path_to_convert: str, timeout: int = 30):
     """
-    convert a doc/docx document to pdf format (linux only, requires libreoffice)
-    :param pdf_output_dir:
+    Convert a doc/docx document to pdf format (Mac only, requires LibreOffice)
     :param path_to_convert: path to document
+    :param timeout: timeout in seconds
+    :return: path to the new PDF file
     """
-    print(f"calling libreoffice --convert-to pdf")
+    print(f"Converting {path_to_convert} to PDF")
     os.chdir(f"{BASE_DIR}/app/certs_dir")  # change to the one directory for now
-    cmd = f"/Applications/LibreOffice.app/Contents/MacOS/soffice --headless --invisible --nodefault --view --nolockcheck --nologo --norestore --nofirststartwizard --convert-to pdf".split() + [
-        path_to_convert
+
+    cmd = [
+        "/Applications/LibreOffice.app/Contents/MacOS/soffice",
+        "--headless",
+        "--convert-to",
+        "pdf",
+        "--outdir",
+        os.path.dirname(path_to_convert),
+        path_to_convert,
     ]
-    print(f"CONVERSION CMD:\n", cmd)
-    # cmd = 'libreoffice --convert-to pdf'.split() + [path_to_convert]
+
+    print(f"Conversion command: {' '.join(cmd)}")
+
     try:
-        p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        p.wait(timeout=10)
-        stdout, stderr = p.communicate()
-        if stderr:
-            raise subprocess.SubprocessError(stderr)
-        new_file_name = path_to_convert.replace(
-            ".docx", ".pdf"
-        )  # make sure the new file name (PDF) is returned
-        print(f"COMPLETE! created file: {new_file_name}")
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        def kill_process():
+            print("Process timed out. Terminating...")
+            process.kill()
+
+        timer = Timer(timeout, kill_process)
+        timer.start()
+
+        stdout, stderr = process.communicate()
+
+        timer.cancel()
+
+        if process.returncode != 0:
+            print(f"Error output: {stderr.decode()}")
+            raise subprocess.SubprocessError(
+                f"LibreOffice conversion failed with return code {process.returncode}"
+            )
+
+        new_file_name = os.path.splitext(path_to_convert)[0] + ".pdf"
+        print(f"Conversion complete. Created file: {new_file_name}")
+        return new_file_name
+
+    except subprocess.TimeoutExpired:
+        print(f"Conversion timed out after {timeout} seconds")
+        raise RuntimeError("Conversion timed out")
     except Exception as e:
-        print(f"Exception when trying to convert: ", e)
-        raise RuntimeError("ERROR WHEN TRYING TO CONVERT")
-    return new_file_name
+        print(f"Exception when trying to convert: {str(e)}")
+        raise RuntimeError("Error during conversion")
+
+
+# def doc2pdf_mac(path_to_convert: str):
+#     """
+#     convert a doc/docx document to pdf format (linux only, requires libreoffice)
+#     :param pdf_output_dir:
+#     :param path_to_convert: path to document
+#     """
+#     print(f"calling libreoffice --convert-to pdf")
+#     os.chdir(f"{BASE_DIR}/app/certs_dir")  # change to the one directory for now
+#     cmd = f"/Applications/LibreOffice.app/Contents/MacOS/soffice --headless --invisible --nodefault --view --nolockcheck --nologo --norestore --nofirststartwizard --convert-to pdf".split() + [
+#         path_to_convert
+#     ]
+#     print(f"CONVERSION CMD:\n", cmd)
+#     # cmd = 'libreoffice --convert-to pdf'.split() + [path_to_convert]
+#     try:
+#         p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+#         p.wait(timeout=10)
+#         stdout, stderr = p.communicate()
+#         if stderr:
+#             raise subprocess.SubprocessError(stderr)
+#         new_file_name = path_to_convert.replace(
+#             ".docx", ".pdf"
+#         )  # make sure the new file name (PDF) is returned
+#         print(f"COMPLETE! created file: {new_file_name}")
+#     except Exception as e:
+#         print(f"Exception when trying to convert: ", e)
+#         raise RuntimeError("ERROR WHEN TRYING TO CONVERT")
+#     return new_file_name
 
 
 def doc2pdf_linux(path_to_convert: str):
