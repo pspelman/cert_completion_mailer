@@ -74,8 +74,10 @@ if __name__ == "__main__":
         )
 
     mailer = Mailer()
+
     sent_certs = set()
     failed_list = list()
+
     try:
         email_subject = "HaRT3S - Harm-Reduction Training Certificate"
         for cert_entry in attendee_cert_files:

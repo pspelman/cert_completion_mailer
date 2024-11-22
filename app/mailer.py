@@ -16,6 +16,8 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 class Mailer:
     def __init__(self):
         self.service = self.get_gmail_service()
+        self.send_as_email = "certificates@hart3s.com"
+        self.display_name = "HaRT3S Certificates"
 
     def get_gmail_service(self):
         creds = None
@@ -57,6 +59,7 @@ class Mailer:
             message = MIMEMultipart()
             message["to"] = email_to
             message["subject"] = subj
+            message["from"] = f"{self.display_name} <{self.send_as_email}>"
 
             msg = MIMEText(email_body)
             message.attach(msg)
@@ -72,7 +75,7 @@ class Mailer:
                 .execute()
             )
             print(f'Message Id: {send_message["id"]}')
-            return True  # Indicate successful send
+            return True  # Note: returning True means message sent successfully
         except HttpError as error:
             print(f"An error occurred: {error}")
             if (
