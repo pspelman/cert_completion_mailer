@@ -6,34 +6,6 @@ from cert_writer import AttendeeTracker
 from mailer import Mailer
 import os
 
-
-def process_and_email_certs(mail_handler):
-    try:
-        mail_handler.start_server()
-        mail_body = (
-            "Thank you for attending the HaRT3S training evidence-based training on harm-reduction. "
-            "Attached to this email is a certificate for completing this training."
-        )
-        email_subject = "HaRT3S - Your Harm-Reduction Training Certificate"
-        for cert_entry in attendee_cert_files:
-            print(f"unpack cert_entry: ", cert_entry)
-            email_recipient = cert_entry[0]
-            pdf_attachment = cert_entry[1]
-            print(f"trying to create new message for {email_recipient}")
-            mail_handler.send_mail(
-                mail_body,
-                email_subject,
-                email_recipient,
-                pdf_attachment,
-                close_after_send=False,
-            )
-    except Exception as e:
-        print(f"Exception encountered when trying to send stuff: ", e)
-    finally:
-        print(f"closing connection")
-        mail_handler.server.quit()
-
-
 NAME_SEARCH_STRING = "XXXCLIENTNAMEXXX"
 
 
@@ -83,8 +55,6 @@ if __name__ == "__main__":
     else:
         raise Exception("Operation Aborted by User")
 
-    # TODO: Keep track of SENT certs (so we don't re-send)
-    # Send the certs and record SENT certs and timestamp
     try:
         mail_body = ""
         with open(
@@ -107,7 +77,6 @@ if __name__ == "__main__":
     sent_certs = set()
     failed_list = list()
     try:
-        mailer.start_server()
         email_subject = "HaRT3S - Harm-Reduction Training Certificate"
         for cert_entry in attendee_cert_files:
             try:
@@ -118,22 +87,18 @@ if __name__ == "__main__":
                 print(f"MAIL WILL BE SENT WITH :\n", personalized_mail_body)
                 email_recipient = cert_entry["email"]
                 pdf_attachment = cert_entry["cert_file"]
-                # email_recipient = cert_entry[0]
-                # pdf_attachment = cert_entry[1]
                 print(f"trying to create new message for {email_recipient}")
                 # note: EMAIL IS ABOUT TO BE SENT
-                mailer.send_mail(
+                success = mailer.send_mail(
                     personalized_mail_body,
                     email_subject,
                     email_recipient,
                     pdf_attachment,
                 )
-                sent_certs.add(email_recipient)
-                # if "y" in input("\n\nREADY TO SEND NEXT EMAIL? ---> (type Y or YES to continue, anything else to abort)").lower():
-                #     mailer.send_mail(personalized_mail_body, email_subject, email_recipient, pdf_attachment)
-                #     sent_certs.add(email_recipient)
-                # else:
-                #     raise Exception("Operation Aborted by User")
+                if success:
+                    sent_certs.add(email_recipient)
+                else:
+                    failed_list.append(cert_entry)
             except Exception as e:
                 print(
                     f"Exception encountered when trying to process cert entry: {cert_entry}: ",
@@ -143,8 +108,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Exception encountered when trying to send stuff: ", e)
     finally:
-        print(f"closing connection")
-        mailer.server.quit()
         print(
             f"SENT CERTS [{len(list(sent_certs))} total]: ",
             json.dumps(list(sent_certs), indent=4, sort_keys=True),

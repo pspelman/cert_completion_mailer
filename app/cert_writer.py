@@ -175,23 +175,49 @@ def doc2pdf_mac(path_to_convert: str, timeout: int = 30):
 #     return new_file_name
 
 
-def doc2pdf_linux(path_to_convert: str):
-    """
-    convert a doc/docx document to pdf format (linux only, requires libreoffice)
-    :param pdf_output_dir:
-    :param path_to_convert: path to document
-    """
-    print(f"calling libreoffice --convert-to pdf | path_to_convert: {path_to_convert}")
-    cmd = "libreoffice --convert-to pdf".split() + [path_to_convert]
-    p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-    p.wait(timeout=10)
-    stdout, stderr = p.communicate()
-    if stderr:
-        raise subprocess.SubprocessError(stderr)
-    new_file_name = path_to_convert.replace("/certs_dir", "").replace(".docx", ".pdf")
+# def doc2pdf_linux(path_to_convert: str):
+#     """
+#     convert a doc/docx document to pdf format (linux only, requires libreoffice)
+#     :param pdf_output_dir:
+#     :param path_to_convert: path to document
+#     """
+#     print(f"calling libreoffice --convert-to pdf | path_to_convert: {path_to_convert}")
+#     cmd = "libreoffice --convert-to pdf".split() + [path_to_convert]
+#     p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+#     p.wait(timeout=10)
+#     stdout, stderr = p.communicate()
+#     if stderr:
+#         raise subprocess.SubprocessError(stderr)
+#     new_file_name = path_to_convert.replace("/certs_dir", "").replace(".docx", ".pdf")
+#
+#     print(f"COMPLETE! created file: {new_file_name}")
+#     return new_file_name
 
-    print(f"COMPLETE! created file: {new_file_name}")
-    return new_file_name
+
+def doc2pdf_linux(
+    path_to_convert: str, timeout: int = 60
+):  # Increased timeout to 60 seconds
+    print(f"calling libreoffice --convert-to pdf | path_to_convert: {path_to_convert}")
+    cmd = ["libreoffice", "--headless", "--convert-to", "pdf", path_to_convert]
+    try:
+        process = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        stdout, stderr = process.communicate(timeout=timeout)
+        if process.returncode != 0:
+            raise subprocess.SubprocessError(
+                f"LibreOffice conversion failed: {stderr.decode()}"
+            )
+        new_file_name = path_to_convert.replace("/certs_dir", "").replace(
+            ".docx", ".pdf"
+        )
+        print(f"COMPLETE! created file: {new_file_name}")
+        return new_file_name
+    except subprocess.TimeoutExpired:
+        process.kill()
+        print(f"Conversion timed out after {timeout} seconds")
+        raise
+    except Exception as e:
+        print(f"Exception when trying to convert: {str(e)}")
+        raise
 
 
 class AttendeeTracker:

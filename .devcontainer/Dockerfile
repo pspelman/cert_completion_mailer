@@ -15,19 +15,24 @@ ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
 RUN apt-get update && \
     apt-get -y dist-upgrade && \
-    apt-get -y autoremove && \
-    apt-get clean all && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository ppa:libreoffice/ppa && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
     apt-get install -y \
-    software-properties-common \
     git \
     curl \
-    python3.11 \
-    python3-pip \
-    python3-dev \
     bash-completion \
     virtualenv \
     netcat \
-    libreoffice
+    libreoffice \
+    python3.11 \
+    python3.11-venv \
+    python3.11-dev \
+    python3-pip && \
+    apt-get -y autoremove && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/$NVM_VERSION/install.sh" | bash \
     && source $NVM_DIR/nvm.sh \
@@ -39,14 +44,12 @@ WORKDIR /install
 COPY ./requirements.txt .
 COPY requirements.txt /requirements.txt
 
-RUN apt-get install -y python3-venv
-
 ENV VIRTUAL_ENV=/home/workspace/venv
-RUN python3 -m venv $VIRTUAL_ENV
+RUN python3.11 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN pip install --upgrade pip \
-    && pip install -r /requirements.txt --no-cache-dir
+RUN pip3 install --upgrade pip \
+    && pip3 install -r /requirements.txt --no-cache-dir
 
 WORKDIR /home/workspace
 COPY . /home/workspace
@@ -71,7 +74,8 @@ COPY --from=builder /home/workspace/requirements.txt .
 RUN groupadd -g 1000 vscode \
     && useradd --uid 1000 --gid 1000 --shell /bin/bash --home-dir /home/workspace vscode \
     && echo "vscode ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
-    && ln -s /usr/bin/python3.11 /usr/bin/python \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
+    && update-alternatives --set python /usr/bin/python3.11 \
     && chown -R vscode:vscode /home/workspace \
     && adduser vscode sudo
 
@@ -90,4 +94,4 @@ RUN echo 'PS1="\[\033[1;36m\]\u\[\033[1;36m\]@\[\033[1;36m\]\h:\[\033[1;352m\]\w
 ENV TERM=xterm-256color
 USER vscode
 
-CMD ["python3 -m venv $VIRTUAL_ENV"]
+CMD ["python3.11", "-m", "venv", "$VIRTUAL_ENV"]
